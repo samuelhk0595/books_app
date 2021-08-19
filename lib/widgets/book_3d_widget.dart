@@ -1,3 +1,4 @@
+import 'package:books_app/utils/device_util.dart';
 import 'package:flutter/material.dart';
 
 class BookWidget extends StatefulWidget {
@@ -24,10 +25,24 @@ class _BookWidgetState extends State<BookWidget> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      child: Row(
-        children: [],
-      ),
+    return InkWell(
+      onTap: () {
+        if (bookYAnimation.isDismissed) {
+          bookYAxisController.forward();
+        } else {
+          bookYAxisController.reverse();
+        }
+      },
+      child: Container(
+          child: AnimatedBuilder(
+              animation: bookYAnimation,
+              builder: (context, snapshot) {
+                return _BookWidget(
+                  coverWidth: Device.width * 0.5,
+                  spineWidth: 50,
+                  coverAnimationValue: bookYAnimation.value,
+                );
+              })),
     );
   }
 }
@@ -38,11 +53,13 @@ class _BookWidget extends StatelessWidget {
     required this.spineWidth,
     required this.coverWidth,
     this.aspectRatio = 1.5,
+    this.coverAnimationValue = 0.0,
   }) : super(key: key);
 
   final double spineWidth;
   final double coverWidth;
   final double aspectRatio;
+  final double coverAnimationValue;
 
   double get bookHeight => coverWidth * 1.5;
 
@@ -50,11 +67,39 @@ class _BookWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        _BookSpine(spineWidth: spineWidth, bookHeight: bookHeight),
-        SizedBox(width: 20),
-        _BookCover(coverWidth: coverWidth, bookHeight: bookHeight)
+        transformYAxis(
+          alignment: Alignment.centerRight,
+          axisValue: computeSpineYAxisValue(),
+          child: _BookSpine(spineWidth: spineWidth, bookHeight: bookHeight),
+        ),
+        transformYAxis(
+            alignment: Alignment.centerLeft,
+            axisValue: computeCoverYAxisValue(),
+            child: _BookCover(coverWidth: coverWidth, bookHeight: bookHeight))
       ],
       mainAxisSize: MainAxisSize.min,
+    );
+  }
+
+  double computeSpineYAxisValue() {
+    return coverAnimationValue * 1.57;
+  }
+
+  double computeCoverYAxisValue() {
+    return -1.57 - (coverAnimationValue * -1.57);
+  }
+
+  Widget transformYAxis({
+    required double axisValue,
+    required Widget child,
+    AlignmentGeometry alignment = Alignment.center,
+  }) {
+    return Transform(
+      alignment: alignment,
+      transform: Matrix4.identity()
+        ..setEntry(3, 2, 0.001)
+        ..rotateY(axisValue),
+      child: child,
     );
   }
 }

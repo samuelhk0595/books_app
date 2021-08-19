@@ -1,3 +1,4 @@
+import 'package:books_app/utils/device_util.dart';
 import 'package:books_app/widgets/book_3d_widget.dart';
 import 'package:flutter/material.dart';
 
@@ -30,6 +31,7 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
+    Device.init(context);
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
@@ -43,11 +45,7 @@ class _MyHomePageState extends State<MyHomePage> {
         elevation: 0.0,
         backgroundColor: Colors.transparent,
       ),
-      body: Center(
-          child: BookWidget(
-        coverWidth: 250,
-        spineWidth: 50,
-      )),
+      body: Center(child: BookWidget()),
     );
   }
 }
