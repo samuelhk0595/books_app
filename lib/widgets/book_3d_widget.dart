@@ -1,14 +1,14 @@
 import 'package:books_app/utils/device_util.dart';
 import 'package:flutter/material.dart';
 
-class BookWidget extends StatefulWidget {
-  BookWidget({Key? key}) : super(key: key);
+class Book3D extends StatefulWidget {
+  Book3D({Key? key}) : super(key: key);
 
   @override
-  _BookWidgetState createState() => _BookWidgetState();
+  _Book3DState createState() => _Book3DState();
 }
 
-class _BookWidgetState extends State<BookWidget> with TickerProviderStateMixin {
+class _Book3DState extends State<Book3D> with TickerProviderStateMixin {
   late AnimationController bookYAxisController;
   late Animation<double> bookYAnimation;
 
@@ -23,6 +23,10 @@ class _BookWidgetState extends State<BookWidget> with TickerProviderStateMixin {
     );
   }
 
+  double get coverWidth => Device.width * 0.5;
+  double get spineWidth => 50;
+  double get containerWidth => spineWidth + (coverWidth * bookYAnimation.value);
+
   @override
   Widget build(BuildContext context) {
     return InkWell(
@@ -33,17 +37,31 @@ class _BookWidgetState extends State<BookWidget> with TickerProviderStateMixin {
           bookYAxisController.reverse();
         }
       },
-      child: Container(
-          child: AnimatedBuilder(
-              animation: bookYAnimation,
-              builder: (context, snapshot) {
-                return _BookWidget(
-                  coverWidth: Device.width * 0.5,
-                  spineWidth: 50,
+      splashColor: Colors.transparent,
+      highlightColor: Colors.transparent,
+      hoverColor: Colors.transparent,
+      child: AnimatedBuilder(
+          animation: bookYAnimation,
+          builder: (context, snapshot) {
+            return Container(
+              margin: marginCenterFixer(),
+              width: containerWidth,
+              child: SingleChildScrollView(
+                child: _BookWidget(
+                  coverWidth: coverWidth,
+                  spineWidth: spineWidth,
                   coverAnimationValue: bookYAnimation.value,
-                );
-              })),
+                ),
+                scrollDirection: Axis.horizontal,
+                physics: NeverScrollableScrollPhysics(),
+              ),
+            );
+          }),
     );
+  }
+
+  EdgeInsets marginCenterFixer() {
+    return EdgeInsets.only(right: spineWidth * bookYAnimation.value);
   }
 }
 
@@ -61,7 +79,9 @@ class _BookWidget extends StatelessWidget {
   final double aspectRatio;
   final double coverAnimationValue;
 
-  double get bookHeight => coverWidth * 1.5;
+  double get bookHeight => coverWidth * aspectRatio;
+
+  double get bookYAngleAplitude => 1.57;
 
   @override
   Widget build(BuildContext context) {
@@ -82,11 +102,12 @@ class _BookWidget extends StatelessWidget {
   }
 
   double computeSpineYAxisValue() {
-    return coverAnimationValue * 1.57;
+    return coverAnimationValue * bookYAngleAplitude;
   }
 
   double computeCoverYAxisValue() {
-    return -1.57 - (coverAnimationValue * -1.57);
+    final coverAngleValue = (0.0 - bookYAngleAplitude);
+    return coverAngleValue - (coverAnimationValue * coverAngleValue);
   }
 
   Widget transformYAxis({
