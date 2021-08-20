@@ -1,8 +1,12 @@
-import 'package:books_app/utils/device_util.dart';
+import 'package:books_app/utils/multi_listener_util.dart';
 import 'package:flutter/material.dart';
 
 class Book3D extends StatefulWidget {
-  Book3D({Key? key}) : super(key: key);
+  Book3D({Key? key, required this.width, required this.spineWidth})
+      : super(key: key);
+
+  final double width;
+  final double spineWidth;
 
   @override
   _Book3DState createState() => _Book3DState();
@@ -11,6 +15,9 @@ class Book3D extends StatefulWidget {
 class _Book3DState extends State<Book3D> with TickerProviderStateMixin {
   late AnimationController bookYAxisController;
   late Animation<double> bookYAnimation;
+
+  late AnimationController coverYAxisController;
+  late Animation<double> coverYAnimation;
 
   @override
   void initState() {
@@ -21,15 +28,30 @@ class _Book3DState extends State<Book3D> with TickerProviderStateMixin {
     bookYAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: bookYAxisController, curve: Curves.easeInOutCirc),
     );
+
+    coverYAxisController =
+        AnimationController(vsync: this, duration: Duration(milliseconds: 800));
+
+    coverYAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+          parent: coverYAxisController, curve: Curves.easeInOutCirc),
+    );
   }
 
-  double get coverWidth => Device.width * 0.5;
-  double get spineWidth => 50;
+  double get coverWidth => widget.width;
+  double get spineWidth => widget.spineWidth;
   double get containerWidth => spineWidth + (coverWidth * bookYAnimation.value);
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
+      onLongPress: () {
+        if (coverYAnimation.isDismissed) {
+          coverYAxisController.forward();
+        } else {
+          coverYAxisController.reverse();
+        }
+      },
       onTap: () {
         if (bookYAnimation.isDismissed) {
           bookYAxisController.forward();
@@ -41,7 +63,10 @@ class _Book3DState extends State<Book3D> with TickerProviderStateMixin {
       highlightColor: Colors.transparent,
       hoverColor: Colors.transparent,
       child: AnimatedBuilder(
-          animation: bookYAnimation,
+          animation: MultiListener(
+            firstListener: bookYAnimation,
+            secondListener: coverYAnimation,
+          ),
           builder: (context, snapshot) {
             return Container(
               margin: marginCenterFixer(),
@@ -50,7 +75,8 @@ class _Book3DState extends State<Book3D> with TickerProviderStateMixin {
                 child: _BookWidget(
                   coverWidth: coverWidth,
                   spineWidth: spineWidth,
-                  coverAnimationValue: bookYAnimation.value,
+                  bookAnimationValue: bookYAnimation.value,
+                  coverAnimationValue: coverYAnimation.value,
                 ),
                 scrollDirection: Axis.horizontal,
                 physics: NeverScrollableScrollPhysics(),
@@ -71,12 +97,14 @@ class _BookWidget extends StatelessWidget {
     required this.spineWidth,
     required this.coverWidth,
     this.aspectRatio = 1.5,
+    this.bookAnimationValue = 0.0,
     this.coverAnimationValue = 0.0,
   }) : super(key: key);
 
   final double spineWidth;
   final double coverWidth;
   final double aspectRatio;
+  final double bookAnimationValue;
   final double coverAnimationValue;
 
   double get bookHeight => coverWidth * aspectRatio;
@@ -92,22 +120,38 @@ class _BookWidget extends StatelessWidget {
           axisValue: computeSpineYAxisValue(),
           child: _BookSpine(spineWidth: spineWidth, bookHeight: bookHeight),
         ),
-        transformYAxis(
-            alignment: Alignment.centerLeft,
-            axisValue: computeCoverYAxisValue(),
-            child: _BookCover(coverWidth: coverWidth, bookHeight: bookHeight))
+        Stack(
+          fit: StackFit.loose,
+          children: [
+            Offstage(
+              offstage: coverAnimationValue == 0.0,
+              child: _BookPages(coverWidth: coverWidth, bookHeight: bookHeight),
+            ),
+            transformYAxis(
+                alignment: Alignment.centerLeft,
+                axisValue:
+                    computeCoverYAxisValue() + computeCoverOpenAnimation(),
+                child:
+                    _BookCover(coverWidth: coverWidth, bookHeight: bookHeight)),
+          ],
+        )
       ],
       mainAxisSize: MainAxisSize.min,
     );
   }
 
   double computeSpineYAxisValue() {
-    return coverAnimationValue * bookYAngleAplitude;
+    return bookAnimationValue * bookYAngleAplitude;
   }
 
   double computeCoverYAxisValue() {
     final coverAngleValue = (0.0 - bookYAngleAplitude);
-    return coverAngleValue - (coverAnimationValue * coverAngleValue);
+    return coverAngleValue - (bookAnimationValue * coverAngleValue);
+  }
+
+  double computeCoverOpenAnimation() {
+    final openCoverValue = bookYAngleAplitude * 2;
+    return openCoverValue * coverAnimationValue;
   }
 
   Widget transformYAxis({
@@ -121,6 +165,40 @@ class _BookWidget extends StatelessWidget {
         ..setEntry(3, 2, 0.001)
         ..rotateY(axisValue),
       child: child,
+    );
+  }
+}
+
+class _BookPages extends StatelessWidget {
+  const _BookPages({
+    Key? key,
+    required this.coverWidth,
+    required this.bookHeight,
+  }) : super(key: key);
+
+  final double coverWidth;
+  final double bookHeight;
+
+  double get pageWidth => coverWidth * 0.97;
+  double get pageHeight => bookHeight * 0.98;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      child: Container(
+        width: pageWidth,
+        height: pageHeight,
+        color: Colors.white,
+      ),
+      alignment: Alignment.centerLeft,
+      width: coverWidth,
+      height: bookHeight,
+      decoration: BoxDecoration(
+          color: Colors.blue,
+          borderRadius: BorderRadius.only(
+            topRight: Radius.circular(2.5),
+            bottomRight: Radius.circular(2.5),
+          )),
     );
   }
 }
