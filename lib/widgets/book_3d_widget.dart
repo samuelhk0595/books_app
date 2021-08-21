@@ -19,6 +19,11 @@ class _Book3DState extends State<Book3D> with TickerProviderStateMixin {
   late AnimationController coverYAxisController;
   late Animation<double> coverYAnimation;
 
+  Offset bookDragStartPosition = Offset.zero;
+  // Offset coverDragStartPosition = Offset.zero;
+  double bookDragStartAnimationValue = 0.0;
+  double coverDragStartAnimationValue = 0.0;
+
   @override
   void initState() {
     super.initState();
@@ -44,14 +49,7 @@ class _Book3DState extends State<Book3D> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onLongPress: () {
-        if (coverYAnimation.isDismissed) {
-          coverYAxisController.forward();
-        } else {
-          coverYAxisController.reverse();
-        }
-      },
+    return GestureDetector(
       onTap: () {
         if (bookYAnimation.isDismissed) {
           bookYAxisController.forward();
@@ -59,9 +57,55 @@ class _Book3DState extends State<Book3D> with TickerProviderStateMixin {
           bookYAxisController.reverse();
         }
       },
-      splashColor: Colors.transparent,
-      highlightColor: Colors.transparent,
-      hoverColor: Colors.transparent,
+      onHorizontalDragStart: (details) {
+        bookDragStartPosition = details.localPosition;
+        bookDragStartAnimationValue = bookYAnimation.value;
+        coverDragStartAnimationValue = coverYAnimation.value;
+      },
+      onHorizontalDragEnd: (details) {
+        if (coverYAnimation.value != 0.0 && coverYAnimation.value != 1.0) {
+          if (coverYAnimation.value < 0.5) {
+            coverYAxisController.reverse();
+          } else {
+            coverYAxisController.forward();
+          }
+        } else if (bookYAnimation.value != 0.0 && bookYAnimation.value != 1.0) {
+          if (bookYAnimation.value < 0.5) {
+            bookYAxisController.reverse();
+          } else {
+            bookYAxisController.forward();
+          }
+        }
+      },
+      onHorizontalDragUpdate: (details) {
+        double dragValue;
+        double distance;
+        bool isDraggingRight;
+
+        if (bookDragStartPosition.dx < details.localPosition.dx) {
+          isDraggingRight = true;
+          distance = details.localPosition.dx - bookDragStartPosition.dx;
+        } else {
+          isDraggingRight = false;
+          distance = bookDragStartPosition.dx - details.localPosition.dx;
+        }
+
+        dragValue = distance / coverWidth;
+
+        if (isDraggingRight) {
+          if (coverYAnimation.value == 0.0) {
+            handleBookDrag(isDraggingRight, dragValue);
+          } else {
+            handleCoverDrag(isDraggingRight, dragValue);
+          }
+        } else {
+          if (bookYAnimation.value == 1.0) {
+            handleCoverDrag(isDraggingRight, dragValue);
+          } else {
+            handleBookDrag(isDraggingRight, dragValue);
+          }
+        }
+      },
       child: AnimatedBuilder(
           animation: MultiListener(
             firstListener: bookYAnimation,
@@ -90,6 +134,22 @@ class _Book3DState extends State<Book3D> with TickerProviderStateMixin {
     return EdgeInsets.only(
         right: spineWidth * bookYAnimation.value,
         left: coverWidth * coverYAnimation.value);
+  }
+
+  void handleBookDrag(bool isDraggingRight, double dragValue) {
+    if (isDraggingRight) {
+      bookYAxisController.value = bookDragStartAnimationValue - dragValue;
+    } else {
+      bookYAxisController.value = bookDragStartAnimationValue + dragValue;
+    }
+  }
+
+  void handleCoverDrag(bool isDraggingRight, double dragValue) {
+    if (isDraggingRight) {
+      coverYAxisController.value = coverDragStartAnimationValue - dragValue;
+    } else {
+      coverYAxisController.value = coverDragStartAnimationValue + dragValue;
+    }
   }
 }
 
