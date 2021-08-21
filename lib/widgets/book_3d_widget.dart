@@ -87,7 +87,9 @@ class _Book3DState extends State<Book3D> with TickerProviderStateMixin {
   }
 
   EdgeInsets marginCenterFixer() {
-    return EdgeInsets.only(right: spineWidth * bookYAnimation.value);
+    return EdgeInsets.only(
+        right: spineWidth * bookYAnimation.value,
+        left: coverWidth * coverYAnimation.value);
   }
 }
 
