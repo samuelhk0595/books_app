@@ -2,11 +2,22 @@ import 'package:books_app/utils/multi_listener_util.dart';
 import 'package:flutter/material.dart';
 
 class Book3D extends StatefulWidget {
-  Book3D({Key? key, required this.width, required this.spineWidth})
-      : super(key: key);
+  Book3D({
+    Key? key,
+    required this.width,
+    required this.spineWidth,
+    this.coverImage,
+    this.spineImage,
+    this.backCoverImage,
+    this.showCoverAtFirst = true,
+  }) : super(key: key);
 
   final double width;
   final double spineWidth;
+  final bool showCoverAtFirst;
+  final ImageProvider? coverImage;
+  final ImageProvider? spineImage;
+  final ImageProvider? backCoverImage;
 
   @override
   _Book3DState createState() => _Book3DState();
@@ -20,7 +31,6 @@ class _Book3DState extends State<Book3D> with TickerProviderStateMixin {
   late Animation<double> coverYAnimation;
 
   Offset bookDragStartPosition = Offset.zero;
-  // Offset coverDragStartPosition = Offset.zero;
   double bookDragStartAnimationValue = 0.0;
   double coverDragStartAnimationValue = 0.0;
 
@@ -33,6 +43,7 @@ class _Book3DState extends State<Book3D> with TickerProviderStateMixin {
     bookYAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: bookYAxisController, curve: Curves.easeInOutCirc),
     );
+    if (widget.showCoverAtFirst) bookYAxisController.value = 1.0;
 
     coverYAxisController =
         AnimationController(vsync: this, duration: Duration(milliseconds: 800));
@@ -75,6 +86,9 @@ class _Book3DState extends State<Book3D> with TickerProviderStateMixin {
                   spineWidth: spineWidth,
                   bookAnimationValue: bookYAnimation.value,
                   coverAnimationValue: coverYAnimation.value,
+                  coverImage: widget.coverImage,
+                  spineImage: widget.spineImage,
+                  backCoverImage: widget.backCoverImage,
                 ),
                 scrollDirection: Axis.horizontal,
                 physics: NeverScrollableScrollPhysics(),
@@ -167,6 +181,9 @@ class _BookWidget extends StatelessWidget {
     this.aspectRatio = 1.5,
     this.bookAnimationValue = 0.0,
     this.coverAnimationValue = 0.0,
+    this.coverImage,
+    this.spineImage,
+    this.backCoverImage,
   }) : super(key: key);
 
   final double spineWidth;
@@ -174,6 +191,9 @@ class _BookWidget extends StatelessWidget {
   final double aspectRatio;
   final double bookAnimationValue;
   final double coverAnimationValue;
+  final ImageProvider? coverImage;
+  final ImageProvider? spineImage;
+  final ImageProvider? backCoverImage;
 
   double get bookHeight => coverWidth * aspectRatio;
 
@@ -186,26 +206,43 @@ class _BookWidget extends StatelessWidget {
         transformYAxis(
           alignment: Alignment.centerRight,
           axisValue: computeSpineYAxisValue(),
-          child: _BookSpine(spineWidth: spineWidth, bookHeight: bookHeight),
+          child: _BookSpine(
+            spineWidth: spineWidth,
+            bookHeight: bookHeight,
+            spineImage: spineImage,
+          ),
         ),
         Stack(
           fit: StackFit.loose,
           children: [
             Offstage(
               offstage: coverAnimationValue == 0.0,
-              child: _BookPages(coverWidth: coverWidth, bookHeight: bookHeight),
+              child: _BookPages(
+                coverWidth: coverWidth,
+                bookHeight: bookHeight,
+                backCoverImage: backCoverImage,
+              ),
             ),
             transformYAxis(
                 alignment: Alignment.centerLeft,
                 axisValue:
                     computeCoverYAxisValue() + computeCoverOpenAnimation(),
-                child:
-                    _BookCover(coverWidth: coverWidth, bookHeight: bookHeight)),
+                child: _BookCover(
+                  coverWidth: coverWidth,
+                  bookHeight: bookHeight,
+                  coverImage: coverImage,
+                )),
           ],
         )
       ],
       mainAxisSize: MainAxisSize.min,
     );
+  }
+
+  EdgeInsets marginCenterFixer() {
+    return EdgeInsets.only(
+        right: spineWidth * bookAnimationValue,
+        left: coverWidth * coverAnimationValue);
   }
 
   double computeSpineYAxisValue() {
@@ -242,10 +279,12 @@ class _BookPages extends StatelessWidget {
     Key? key,
     required this.coverWidth,
     required this.bookHeight,
+    this.backCoverImage,
   }) : super(key: key);
 
   final double coverWidth;
   final double bookHeight;
+  final ImageProvider? backCoverImage;
 
   double get pageWidth => coverWidth * 0.97;
   double get pageHeight => bookHeight * 0.98;
@@ -263,6 +302,9 @@ class _BookPages extends StatelessWidget {
       height: bookHeight,
       decoration: BoxDecoration(
           color: Colors.blue,
+          image: backCoverImage == null
+              ? null
+              : DecorationImage(fit: BoxFit.fill, image: backCoverImage!),
           borderRadius: BorderRadius.only(
             topRight: Radius.circular(2.5),
             bottomRight: Radius.circular(2.5),
@@ -276,10 +318,12 @@ class _BookSpine extends StatelessWidget {
     Key? key,
     required this.spineWidth,
     required this.bookHeight,
+    this.spineImage,
   }) : super(key: key);
 
   final double spineWidth;
   final double bookHeight;
+  final ImageProvider? spineImage;
 
   @override
   Widget build(BuildContext context) {
@@ -287,8 +331,10 @@ class _BookSpine extends StatelessWidget {
       width: spineWidth,
       height: bookHeight,
       decoration: BoxDecoration(
-        color: Colors.blue,
-      ),
+          color: Colors.blue,
+          image: spineImage == null
+              ? null
+              : DecorationImage(fit: BoxFit.fill, image: spineImage!)),
     );
   }
 }
@@ -298,10 +344,12 @@ class _BookCover extends StatelessWidget {
     Key? key,
     required this.coverWidth,
     required this.bookHeight,
+    this.coverImage,
   }) : super(key: key);
 
   final double coverWidth;
   final double bookHeight;
+  final ImageProvider? coverImage;
 
   @override
   Widget build(BuildContext context) {
@@ -310,6 +358,9 @@ class _BookCover extends StatelessWidget {
       height: bookHeight,
       decoration: BoxDecoration(
           color: Colors.lightBlue,
+          image: coverImage == null
+              ? null
+              : DecorationImage(fit: BoxFit.fill, image: coverImage!),
           borderRadius: BorderRadius.only(
             topRight: Radius.circular(2.5),
             bottomRight: Radius.circular(2.5),
