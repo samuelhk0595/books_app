@@ -56,7 +56,8 @@ class _Book3DState extends State<Book3D> with TickerProviderStateMixin {
 
   double get coverWidth => widget.width;
   double get spineWidth => widget.spineWidth;
-  double get containerWidth => spineWidth + (coverWidth * bookYAnimation.value);
+  double get viewportWidth =>
+      (spineWidth * 2) + (coverWidth * bookYAnimation.value);
 
   @override
   Widget build(BuildContext context) {
@@ -79,7 +80,7 @@ class _Book3DState extends State<Book3D> with TickerProviderStateMixin {
           builder: (context, snapshot) {
             return Container(
               margin: marginCenterFixer(),
-              width: containerWidth,
+              width: viewportWidth,
               child: SingleChildScrollView(
                 child: _BookWidget(
                   coverWidth: coverWidth,
@@ -227,11 +228,17 @@ class _BookWidget extends StatelessWidget {
                 alignment: Alignment.centerLeft,
                 axisValue:
                     computeCoverYAxisValue() + computeCoverOpenAnimation(),
-                child: _BookCover(
-                  coverWidth: coverWidth,
-                  bookHeight: bookHeight,
-                  coverImage: coverImage,
-                )),
+                child: computeCoverOpenAnimation() > bookYAngleAplitude
+                    ? _BookCounterCover(
+                        coverWidth: coverWidth,
+                        bookHeight: bookHeight,
+                        coverImage: coverImage,
+                      )
+                    : _BookCover(
+                        coverWidth: coverWidth,
+                        bookHeight: bookHeight,
+                        coverImage: coverImage,
+                      )),
           ],
         )
       ],
@@ -295,13 +302,26 @@ class _BookPages extends StatelessWidget {
       child: Container(
         width: pageWidth,
         height: pageHeight,
-        color: Colors.white,
+        decoration: BoxDecoration(
+          border: Border(
+            left: BorderSide(color: Colors.grey[350]!),
+          ),
+          gradient: LinearGradient(colors: [
+            Colors.grey[50]!,
+            Colors.white,
+            Colors.white,
+          ], stops: [
+            0.1,
+            0.2,
+            0.8,
+          ]),
+        ),
       ),
       alignment: Alignment.centerLeft,
       width: coverWidth,
       height: bookHeight,
       decoration: BoxDecoration(
-          color: Colors.blue,
+          color: backCoverImage == null ? Colors.blue : Colors.transparent,
           image: backCoverImage == null
               ? null
               : DecorationImage(fit: BoxFit.fill, image: backCoverImage!),
@@ -358,6 +378,54 @@ class _BookCover extends StatelessWidget {
       height: bookHeight,
       decoration: BoxDecoration(
           color: Colors.lightBlue,
+          image: coverImage == null
+              ? null
+              : DecorationImage(fit: BoxFit.fill, image: coverImage!),
+          borderRadius: BorderRadius.only(
+            topRight: Radius.circular(2.5),
+            bottomRight: Radius.circular(2.5),
+          )),
+    );
+  }
+}
+
+class _BookCounterCover extends StatelessWidget {
+  const _BookCounterCover({
+    Key? key,
+    required this.coverWidth,
+    required this.bookHeight,
+    this.coverImage,
+  }) : super(key: key);
+
+  final double coverWidth;
+  final double bookHeight;
+  final ImageProvider? coverImage;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: coverWidth,
+      height: bookHeight,
+      padding: EdgeInsets.fromLTRB(0, 7, 10, 7),
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(colors: [
+            Colors.grey[50]!,
+            Colors.white,
+            Colors.white,
+          ], stops: [
+            0.1,
+            0.2,
+            0.8,
+          ]),
+        ),
+      ),
+      decoration: BoxDecoration(
+          color: Colors.lightBlue,
+          gradient: LinearGradient(colors: [
+            Colors.black,
+            Colors.red,
+          ]),
           image: coverImage == null
               ? null
               : DecorationImage(fit: BoxFit.fill, image: coverImage!),
